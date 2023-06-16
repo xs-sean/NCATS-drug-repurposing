@@ -15,59 +15,54 @@ outpath = '.../GBM/RNA+protein/'
 
 ```
 
-### merge expression matrixes 
-```{r}
-
+### merge expression matrixes of mRNA-seq and proteomics
+```{r Merge data}
+## read data
 prt <- read.csv(paste(prt.path, "PMID_31331834.final.csv", sep = ""), row.names = 1)
 rna <- read.table(paste(rna.path, "GBM_control_results.txt", sep = ""))
 
 head(rna)
 head(prt)
+
+## merge data sets
 row.names(prt) <- prt$GeneName
 dt.exp <- merge(rna, prt, by='row.names')
 
+## remove NA rows
 dt.exp <- !is.na(dt.exp)
 
-dim(dt.exp)
-
-View(dt.exp)
-
+# save file
 write.table(dt.exp, file = paste(outpath, "rna+protein.txt", sep = ""))
-
-colnames(dt)
 
 ```
 
 
 ### quadrant plot
-```{r}
-
-# quadrant plotting
-
+```{r quadrant plot}
+# read data
 dt <- read.table( file = paste(outpath, "rna+protein.txt", sep = ""), header = T, row.names = 1)
 
 rownames(dt) <- dt$Row.names
-
 
 dt_1 <- dt[,c("log2FoldChange", "padj", "FC", "bfn_p_value" )]
 colnames(dt_1) <- c("RNA_log2FC", "RNA_padj", "pro_FC", "pro_padj")
 dt <- dt_1
 dt$pro_log2FC <- log2(dt$pro_FC)
-dt$palette <- 'gray70'  # set default color 
-# define color pallete: cut-off: p < 0.05, fold change: for transcriptome is 2 fold, while proteome is 1.2, logFC = 0.2630344
+
+## set color palette for plotting
+dt$palette <- 'gray70'  # set non-significant color 
+
+# set DE gene as red. Cut-off: p < 0.05, fold change >2 | < 0.5
  for (i in 1:length(dt$palette)) {
     if (dt$pro_padj[i] < 0.05 & dt$RNA_padj[i] < 0.05 & abs(as.numeric(dt$RNA_log2FC[i])) > 1 & abs(as.numeric(dt$pro_log2FC[i])) > 1)
   {dt$palette[i] <- 'red'  }
-  # else if (dt$pro_padj[i] < 0.05 & dt$RNA_padj[i] < 0.05 & abs(as.numeric(dt$RNA_log2FC[i])) < 1 & abs(as.numeric(dt$pro_log2FC[i])) > 1) 
-  # {dt$palette[i] <- 'blue'}
-  # else 
-  # {dt$palette[i] <- 'gray70' }
-}
-# plot pionts color by color
+ }
+
+# plot genes color by color
 gray.points <- dt[which(dt$palette == 'gray70'),]
-# blue.points <- dt[which(dt$palette == 'blue'),]
 red.points <- dt[which(dt$palette == 'red'),]
-pdf(file = paste(outpath,'quadrant.pdf', sep = ""),width = 10, height =8)
+
+pdf(file = paste(outpath,'quadrant.pdf', sep = ""),width = 10, height =8) # or
 png(file = paste(outpath,'quadrant.png', sep = ""),width = 10, height =8, units = "in", res = 300)
 par(mar=c(8, 8, 4, 4))
 plot(gray.points$pro_log2FC~gray.points$RNA_log2FC,
@@ -81,25 +76,22 @@ plot(gray.points$pro_log2FC~gray.points$RNA_log2FC,
      cex.axis = 2,
      cex.lab = 2,
 )
-# points(blue.points$pro_log2FC~blue.points$RNA_log2FC,
-#        col=blue.points$palette,
-#        pch=16,
-#        cex=1.5
-# ) 
+# add red points
 points(red.points$pro_log2FC~red.points$RNA_log2FC,
        col=red.points$palette,
        pch=16,
        cex=1.5
 ) 
 
+# add cut-off lines
 abline(h = 1,  col = "gray10", untf = FALSE, lty=2, lwd =3)
 abline(h = -1,  col = "gray10", untf = FALSE, lty=2, lwd =3)
 abline(v = 1,  col = "gray10", untf = FALSE, lty=2, lwd =3)
 abline(v = -1,  col = "gray10", untf = FALSE, lty=2, lwd =3)
 dev.off()
 
-
-write.table(dt, file = paste(outpath, "quadrantData.txt", sep = ""))
+## save the results
+write.table(dt, file = paste(outpath, "quadrantData.txt", sep = "")) # or
 write.csv(dt, file = paste(outpath, "quadrantData.csv", sep = ""))
 
 ```
@@ -202,13 +194,4 @@ df <- candidates[order(candidates$Count,decreasing=TRUE),]
 unique(tolower(df))
 
 ```
-
-
-### BBB transparancy
-```{r}
-
-```
-
-
-## next step analysis: enrichment/pathway analysis, therapeutic targets & drugs 
 
